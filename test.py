@@ -5,13 +5,13 @@ from model import Discriminator
 from utils import set_model_mode
 
 
-def tester(encoder, classifier, discriminator, source_test_loader, target_test_loader, training_mode):
-    encoder.cuda()
-    classifier.cuda()
+def tester(encoder, classifier, discriminator, source_test_loader, target_test_loader, training_mode, device='cpu'):
+    encoder.to(device)
+    classifier.to(device)
     set_model_mode('eval', [encoder, classifier])
 
     if training_mode == 'DANN':
-        discriminator.cuda()
+        discriminator.to(device)
         set_model_mode('eval', [discriminator])
         domain_correct = 0
 
@@ -23,8 +23,8 @@ def tester(encoder, classifier, discriminator, source_test_loader, target_test_l
         alpha = 2. / (1. + np.exp(-10 * p)) - 1
 
         # Process source and target data
-        source_image, source_label = process_data(source_data, expand_channels=True)
-        target_image, target_label = process_data(target_data)
+        source_image, source_label = process_data(source_data, expand_channels=True, device=device)
+        target_image, target_label = process_data(target_data, device=device)
 
         # Compute source and target predictions
         source_pred = compute_output(encoder, classifier, source_image, alpha=None)
@@ -38,7 +38,7 @@ def tester(encoder, classifier, discriminator, source_test_loader, target_test_l
             # Process combined images for domain classification
             combined_image = torch.cat((source_image, target_image), 0)
             domain_labels = torch.cat((torch.zeros(source_label.size(0), dtype=torch.long),
-                                       torch.ones(target_label.size(0), dtype=torch.long)), 0).cuda()
+                                       torch.ones(target_label.size(0), dtype=torch.long)), 0).to(device)
 
             # Compute domain predictions
             domain_pred = compute_output(encoder, discriminator, combined_image, alpha=alpha)
@@ -70,9 +70,9 @@ def tester(encoder, classifier, discriminator, source_test_loader, target_test_l
     print_accuracy(training_mode, accuracies)
 
 
-def process_data(data, expand_channels=False):
+def process_data(data, expand_channels=False, device='cpu'):
     images, labels = data
-    images, labels = images.cuda(), labels.cuda()
+    images, labels = images.to(device), labels.to(device)
     if expand_channels:
         images = images.repeat(1, 3, 1, 1)  # Repeat channels to convert to 3-channel images
     return images, labels

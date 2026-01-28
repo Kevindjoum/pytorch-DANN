@@ -9,15 +9,16 @@ def main():
     source_train_loader = mnist.mnist_train_loader
     target_train_loader = mnistm.mnistm_train_loader
 
-    if torch.cuda.is_available():
-        encoder = model.Extractor().cuda()
-        classifier = model.Classifier().cuda()
-        discriminator = model.Discriminator().cuda()
+    # Use GPU if available, otherwise use CPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
-        train.source_only(encoder, classifier, source_train_loader, target_train_loader)
-        train.dann(encoder, classifier, discriminator, source_train_loader, target_train_loader)
-    else:
-        print("No GPUs available.")
+    encoder = model.Extractor().to(device)
+    classifier = model.Classifier().to(device)
+    discriminator = model.Discriminator().to(device)
+
+    train.source_only(encoder, classifier, source_train_loader, target_train_loader, device)
+    train.dann(encoder, classifier, discriminator, source_train_loader, target_train_loader, device)
 
 
 if __name__ == "__main__":
